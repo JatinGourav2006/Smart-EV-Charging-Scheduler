@@ -3,35 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart EV Charging Scheduler</title>
+  <title>Smart Warehouse Dispatch Scheduler</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <header class="top-header">
+    <div class="header-inner">
+      <h1>📦 Warehouse Dispatch Scheduler</h1>
+      <span class="status-chip">Live Dispatch Console</span>
+    </div>
+  </header>
+
   <main class="app-shell">
-    <section class="hero">
+    <section class="dashboard-intro">
       <div>
-        <p class="eyebrow">Charging station simulator</p>
-        <h1>Smart EV Charging Scheduler</h1>
-        <p class="subcopy">Compare EV queue scheduling strategies, track waiting time, and visualize station usage over time.</p>
+        <p class="eyebrow">Smart warehouse operations</p>
+        <h2>Dispatch queue optimization</h2>
+        <p class="subcopy">Compare scheduling strategies for warehouse orders, review queue metrics, and monitor processing flow on a timeline.</p>
       </div>
-      <div class="hero-meter" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
+      <div class="kpi-strip" aria-label="Dashboard summary">
+        <div>
+          <span>Mode</span>
+          <strong>Scheduling</strong>
+        </div>
+        <div>
+          <span>Queue</span>
+          <strong id="headerQueueCount">0</strong>
+        </div>
       </div>
     </section>
 
     <section class="grid-layout">
       <form id="vehicleForm" class="panel form-panel">
         <div class="panel-heading">
-          <h2>Add Vehicle</h2>
-          <p>Arrival and charging time use the same time unit.</p>
+          <h2>Incoming Orders</h2>
+          <p>Add warehouse orders to the dispatch queue.</p>
         </div>
 
         <div class="form-grid">
           <label>
-            Vehicle ID
-            <input id="vehicleId" type="text" placeholder="EV-101" required>
+            Order ID
+            <input id="vehicleId" type="text" placeholder="ORD-1001" required>
           </label>
 
           <label>
@@ -40,18 +52,18 @@
           </label>
 
           <label>
-            Charging Time
+            Processing Time
             <input id="chargingTime" type="number" min="1" step="1" placeholder="4" required>
           </label>
 
           <label>
-            Battery Percentage
-            <input id="batteryPercentage" type="number" min="0" max="100" step="1" placeholder="35" required>
+            Priority Level
+            <input id="batteryPercentage" type="number" min="1" max="10" step="1" placeholder="8" required>
           </label>
         </div>
 
         <div class="actions">
-          <button type="submit" class="btn primary">Add Vehicle</button>
+          <button type="submit" class="btn primary">Add Order</button>
           <button type="button" id="sampleBtn" class="btn secondary">Sample Data</button>
           <button type="button" id="resetBtn" class="btn danger">Reset</button>
         </div>
@@ -59,8 +71,8 @@
 
       <section class="panel controls-panel">
         <div class="panel-heading">
-          <h2>Scheduler</h2>
-          <p>Choose an algorithm and run the simulation.</p>
+          <h2>Dispatch Controls</h2>
+          <p>Choose a scheduling algorithm and process the queue.</p>
         </div>
 
         <div class="control-stack">
@@ -69,7 +81,7 @@
             <select id="algorithmSelect">
               <option value="fcfs">FCFS - First Come First Serve</option>
               <option value="sjf">SJF - Shortest Job First</option>
-              <option value="priority">Priority - Low Battery First</option>
+              <option value="priority">Priority Scheduling</option>
               <option value="rr">Round Robin</option>
               <option value="mlq">Multilevel Queue</option>
               <option value="mlfq">Multilevel Feedback Queue</option>
@@ -77,13 +89,13 @@
           </label>
 
           <label>
-            Time Quantum
+            Time Quantum / Batch Window
             <input id="timeQuantum" type="number" min="1" step="1" value="2">
           </label>
         </div>
 
         <div class="actions">
-          <button type="button" id="runBtn" class="btn primary">Run Schedule</button>
+          <button type="button" id="runBtn" class="btn primary">Run Dispatch</button>
           <button type="button" id="suggestBtn" class="btn accent">Suggest Best Algorithm</button>
         </div>
 
@@ -94,25 +106,25 @@
     <section class="panel">
       <div class="panel-heading row-heading">
         <div>
-          <h2>Vehicle Queue</h2>
-          <p>Battery level determines priority for priority-based methods.</p>
+          <h2>Incoming Orders</h2>
+          <p>Priority level is color coded for quick dispatch review.</p>
         </div>
-        <span id="vehicleCount" class="count-pill">0 vehicles</span>
+        <span id="vehicleCount" class="count-pill">0 orders</span>
       </div>
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Order ID</th>
               <th>Arrival</th>
-              <th>Charging Time</th>
-              <th>Battery %</th>
+              <th>Processing Time</th>
+              <th>Priority Level</th>
             </tr>
           </thead>
           <tbody id="vehicleTableBody">
             <tr>
-              <td colspan="4" class="empty-state">No vehicles added yet.</td>
+              <td colspan="4" class="empty-state">No orders added yet.</td>
             </tr>
           </tbody>
         </table>
@@ -121,13 +133,13 @@
 
     <section class="panel results-panel">
       <div class="panel-heading">
-        <h2>Simulation Output</h2>
-        <p id="resultSubtitle">Run an algorithm to see execution order and timing metrics.</p>
+        <h2>Processing Output</h2>
+        <p id="resultSubtitle">Run an algorithm to see dispatch order and timing metrics.</p>
       </div>
 
       <div class="summary-grid">
         <div class="metric-card">
-          <span>Execution Order</span>
+          <span>Dispatch Order</span>
           <strong id="executionOrder">-</strong>
         </div>
         <div class="metric-card">
@@ -140,7 +152,7 @@
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Order ID</th>
               <th>Start</th>
               <th>End</th>
               <th>Waiting Time</th>
@@ -149,7 +161,7 @@
           </thead>
           <tbody id="resultTableBody">
             <tr>
-              <td colspan="5" class="empty-state">No schedule generated.</td>
+              <td colspan="5" class="empty-state">No dispatch schedule generated.</td>
             </tr>
           </tbody>
         </table>
@@ -158,11 +170,11 @@
 
     <section class="panel">
       <div class="panel-heading">
-        <h2>Gantt Chart</h2>
-        <p>Blocks show charger occupancy and time progression.</p>
+        <h2>Dispatch Timeline</h2>
+        <p>Blocks show processing windows and time progression.</p>
       </div>
       <div id="ganttChart" class="gantt-chart">
-        <div class="empty-state chart-empty">No chart to display.</div>
+        <div class="empty-state chart-empty">No timeline to display.</div>
       </div>
     </section>
 

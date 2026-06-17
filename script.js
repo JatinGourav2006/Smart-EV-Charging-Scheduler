@@ -23,6 +23,7 @@ const resultSubtitle = document.getElementById("resultSubtitle");
 const ganttChart = document.getElementById("ganttChart");
 const comparisonList = document.getElementById("comparisonList");
 const bestAlgorithm = document.getElementById("bestAlgorithm");
+const headerQueueCount = document.getElementById("headerQueueCount");
 
 form.addEventListener("submit", handleVehicleSubmit);
 document.getElementById("runBtn").addEventListener("click", runSelectedAlgorithm);
@@ -41,12 +42,12 @@ function handleVehicleSubmit(event) {
   };
 
   if (!isValidVehicle(vehicle)) {
-    alert("Please enter a valid vehicle. Charging time must be at least 1 and battery must be 0-100.");
+    alert("Please enter a valid order. Processing time must be at least 1 and priority must be 1-10.");
     return;
   }
 
   if (state.vehicles.some((item) => item.id.toLowerCase() === vehicle.id.toLowerCase())) {
-    alert("Vehicle ID already exists. Please use a unique ID.");
+    alert("Order ID already exists. Please use a unique ID.");
     return;
   }
 
@@ -63,8 +64,8 @@ function isValidVehicle(vehicle) {
     && Number.isFinite(vehicle.battery)
     && vehicle.arrival >= 0
     && vehicle.charging >= 1
-    && vehicle.battery >= 0
-    && vehicle.battery <= 100;
+    && vehicle.battery >= 1
+    && vehicle.battery <= 10;
 }
 
 function cloneVehicles() {
@@ -78,7 +79,7 @@ function cloneVehicles() {
 
 function runSelectedAlgorithm() {
   if (!state.vehicles.length) {
-    alert("Add at least one vehicle before running a schedule.");
+    alert("Add at least one order before running a dispatch schedule.");
     return;
   }
 
@@ -99,7 +100,7 @@ function runAlgorithm(type, quantum) {
   return scheduleMlfq(vehicles, quantum);
 }
 
-// FCFS charges vehicles in the same order they arrive at the station.
+// FCFS processes orders in the same order they arrive at the warehouse.
 function scheduleFcfs(vehicles) {
   const ordered = vehicles.sort((a, b) => a.arrival - b.arrival || a.index - b.index);
   let time = 0;
@@ -122,14 +123,14 @@ function scheduleFcfs(vehicles) {
   return buildResult(vehicles, segments);
 }
 
-// SJF always picks the available vehicle with the shortest required charging time.
+// SJF always picks the available order with the shortest processing time.
 function scheduleSjf(vehicles) {
   return scheduleNonPreemptive(vehicles, (ready) => {
     return ready.sort((a, b) => a.charging - b.charging || a.arrival - b.arrival || a.index - b.index)[0];
   });
 }
 
-// Priority scheduling treats a lower battery percentage as higher urgency.
+// Priority scheduling uses the original priority comparison from the base project.
 function schedulePriority(vehicles) {
   return scheduleNonPreemptive(vehicles, (ready) => {
     return ready.sort((a, b) => a.battery - b.battery || a.arrival - b.arrival || a.index - b.index)[0];
@@ -164,7 +165,7 @@ function scheduleNonPreemptive(vehicles, picker) {
   return buildResult(vehicles, segments);
 }
 
-// Round Robin gives every ready vehicle a repeated fixed time slice until it finishes.
+// Round Robin gives every ready order a repeated fixed time slice until it finishes.
 function scheduleRoundRobin(vehicles, quantum) {
   const pending = [...vehicles].sort((a, b) => a.arrival - b.arrival || a.index - b.index);
   const queue = [];
@@ -203,7 +204,7 @@ function scheduleRoundRobin(vehicles, quantum) {
   return buildResult(vehicles, mergeAdjacentSegments(segments));
 }
 
-// Multilevel Queue separates low-battery urgent vehicles from normal vehicles.
+// Multilevel Queue separates urgent orders from normal orders.
 function scheduleMultilevelQueue(vehicles, quantum) {
   const urgentIds = new Set(vehicles.filter((vehicle) => vehicle.battery < 30).map((vehicle) => vehicle.id));
   const urgentResult = schedulePriority(vehicles.filter((vehicle) => urgentIds.has(vehicle.id)));
@@ -236,7 +237,7 @@ function scheduleMultilevelQueue(vehicles, quantum) {
   return buildResult(vehicles, allSegments);
 }
 
-// MLFQ starts all vehicles in a fast-response queue, then demotes unfinished jobs to longer quanta.
+// MLFQ starts all orders in a fast-response queue, then demotes unfinished jobs to longer quanta.
 function scheduleMlfq(vehicles, quantum) {
   const pending = [...vehicles].sort((a, b) => a.arrival - b.arrival || a.index - b.index);
   const queues = [[], [], []];
@@ -345,7 +346,7 @@ function buildResult(vehicles, segments) {
 
 function suggestBestAlgorithm() {
   if (!state.vehicles.length) {
-    alert("Add at least one vehicle before comparing algorithms.");
+    alert("Add at least one order before comparing algorithms.");
     return;
   }
 
@@ -361,7 +362,7 @@ function suggestBestAlgorithm() {
   renderSchedule(results[0].result, results[0].name);
 
   bestAlgorithm.hidden = false;
-  bestAlgorithm.innerHTML = `<strong>${results[0].name}</strong> is best for this queue with an average waiting time of <strong>${formatNumber(results[0].result.averageWait)}</strong>.`;
+  bestAlgorithm.innerHTML = `<strong>${results[0].name}</strong> is best for this dispatch queue with an average waiting time of <strong>${formatNumber(results[0].result.averageWait)}</strong>.`;
 }
 
 function getQuantum() {
@@ -370,10 +371,11 @@ function getQuantum() {
 }
 
 function renderVehicles() {
-  vehicleCount.textContent = `${state.vehicles.length} ${state.vehicles.length === 1 ? "vehicle" : "vehicles"}`;
+  vehicleCount.textContent = `${state.vehicles.length} ${state.vehicles.length === 1 ? "order" : "orders"}`;
+  headerQueueCount.textContent = String(state.vehicles.length);
 
   if (!state.vehicles.length) {
-    vehicleTableBody.innerHTML = `<tr><td colspan="4" class="empty-state">No vehicles added yet.</td></tr>`;
+    vehicleTableBody.innerHTML = `<tr><td colspan="4" class="empty-state">No orders added yet.</td></tr>`;
     return;
   }
 
@@ -383,14 +385,14 @@ function renderVehicles() {
         <td>${escapeHtml(vehicle.id)}</td>
         <td>${vehicle.arrival}</td>
         <td>${vehicle.charging}</td>
-        <td><span class="battery-pill ${getBatteryClass(vehicle.battery)}">${vehicle.battery}%</span></td>
+        <td><span class="priority-pill ${getPriorityClass(vehicle.battery)}">${getPriorityLabel(vehicle.battery)}</span></td>
       </tr>
     `)
     .join("");
 }
 
 function renderSchedule(result, algorithmName) {
-  resultSubtitle.textContent = `${algorithmName} generated ${result.segments.length} chart block${result.segments.length === 1 ? "" : "s"}.`;
+  resultSubtitle.textContent = `${algorithmName} generated ${result.segments.length} timeline block${result.segments.length === 1 ? "" : "s"}.`;
   executionOrder.textContent = result.order.join(" -> ");
   averageWaiting.textContent = formatNumber(result.averageWait);
 
@@ -411,7 +413,7 @@ function renderSchedule(result, algorithmName) {
 
 function renderGanttChart(segments) {
   if (!segments.length) {
-    ganttChart.innerHTML = `<div class="empty-state chart-empty">No chart to display.</div>`;
+    ganttChart.innerHTML = `<div class="empty-state chart-empty">No timeline to display.</div>`;
     return;
   }
 
@@ -450,11 +452,11 @@ function renderComparison(results) {
 }
 
 function clearSchedule() {
-  resultSubtitle.textContent = "Run an algorithm to see execution order and timing metrics.";
+  resultSubtitle.textContent = "Run an algorithm to see dispatch order and timing metrics.";
   executionOrder.textContent = "-";
   averageWaiting.textContent = "-";
-  resultTableBody.innerHTML = `<tr><td colspan="5" class="empty-state">No schedule generated.</td></tr>`;
-  ganttChart.innerHTML = `<div class="empty-state chart-empty">No chart to display.</div>`;
+  resultTableBody.innerHTML = `<tr><td colspan="5" class="empty-state">No dispatch schedule generated.</td></tr>`;
+  ganttChart.innerHTML = `<div class="empty-state chart-empty">No timeline to display.</div>`;
   comparisonList.innerHTML = `<div class="empty-state">Use Suggest Best Algorithm to compare all methods.</div>`;
   bestAlgorithm.hidden = true;
   bestAlgorithm.textContent = "";
@@ -470,20 +472,26 @@ function resetApp() {
 
 function loadSampleData() {
   state.vehicles = [
-    { id: "EV-101", arrival: 0, charging: 5, battery: 18 },
-    { id: "EV-204", arrival: 1, charging: 3, battery: 45 },
-    { id: "EV-317", arrival: 2, charging: 8, battery: 72 },
-    { id: "EV-422", arrival: 4, charging: 4, battery: 12 },
-    { id: "EV-530", arrival: 6, charging: 2, battery: 63 }
+    { id: "ORD-1001", arrival: 0, charging: 5, battery: 9 },
+    { id: "ORD-1002", arrival: 1, charging: 3, battery: 6 },
+    { id: "ORD-1003", arrival: 2, charging: 8, battery: 3 },
+    { id: "ORD-1004", arrival: 4, charging: 4, battery: 8 },
+    { id: "ORD-1005", arrival: 6, charging: 2, battery: 5 }
   ];
   renderVehicles();
   clearSchedule();
 }
 
-function getBatteryClass(battery) {
-  if (battery < 20) return "battery-low";
-  if (battery <= 60) return "battery-mid";
-  return "battery-high";
+function getPriorityClass(priority) {
+  if (priority <= 3) return "priority-low";
+  if (priority <= 7) return "priority-mid";
+  return "priority-high";
+}
+
+function getPriorityLabel(priority) {
+  if (priority <= 3) return `${priority} Low`;
+  if (priority <= 7) return `${priority} Medium`;
+  return `${priority} High`;
 }
 
 function formatNumber(value) {
