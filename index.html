@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart EV Charging Scheduler</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Charging station simulator</p>
+        <h1>Smart EV Charging Scheduler</h1>
+        <p class="subcopy">Compare EV queue scheduling strategies, track waiting time, and visualize station usage over time.</p>
+      </div>
+      <div class="hero-meter" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </section>
+
+    <section class="grid-layout">
+      <form id="vehicleForm" class="panel form-panel">
+        <div class="panel-heading">
+          <h2>Add Vehicle</h2>
+          <p>Arrival and charging time use the same time unit.</p>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Vehicle ID
+            <input id="vehicleId" type="text" placeholder="EV-101" required>
+          </label>
+
+          <label>
+            Arrival Time
+            <input id="arrivalTime" type="number" min="0" step="1" placeholder="0" required>
+          </label>
+
+          <label>
+            Charging Time
+            <input id="chargingTime" type="number" min="1" step="1" placeholder="4" required>
+          </label>
+
+          <label>
+            Battery Percentage
+            <input id="batteryPercentage" type="number" min="0" max="100" step="1" placeholder="35" required>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">Add Vehicle</button>
+          <button type="button" id="sampleBtn" class="btn secondary">Sample Data</button>
+          <button type="button" id="resetBtn" class="btn danger">Reset</button>
+        </div>
+      </form>
+
+      <section class="panel controls-panel">
+        <div class="panel-heading">
+          <h2>Scheduler</h2>
+          <p>Choose an algorithm and run the simulation.</p>
+        </div>
+
+        <div class="control-stack">
+          <label>
+            Algorithm
+            <select id="algorithmSelect">
+              <option value="fcfs">FCFS - First Come First Serve</option>
+              <option value="sjf">SJF - Shortest Job First</option>
+              <option value="priority">Priority - Low Battery First</option>
+              <option value="rr">Round Robin</option>
+              <option value="mlq">Multilevel Queue</option>
+              <option value="mlfq">Multilevel Feedback Queue</option>
+            </select>
+          </label>
+
+          <label>
+            Time Quantum
+            <input id="timeQuantum" type="number" min="1" step="1" value="2">
+          </label>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="runBtn" class="btn primary">Run Schedule</button>
+          <button type="button" id="suggestBtn" class="btn accent">Suggest Best Algorithm</button>
+        </div>
+
+        <div id="bestAlgorithm" class="best-box" hidden></div>
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading row-heading">
+        <div>
+          <h2>Vehicle Queue</h2>
+          <p>Battery level determines priority for priority-based methods.</p>
+        </div>
+        <span id="vehicleCount" class="count-pill">0 vehicles</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Arrival</th>
+              <th>Charging Time</th>
+              <th>Battery %</th>
+            </tr>
+          </thead>
+          <tbody id="vehicleTableBody">
+            <tr>
+              <td colspan="4" class="empty-state">No vehicles added yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="panel-heading">
+        <h2>Simulation Output</h2>
+        <p id="resultSubtitle">Run an algorithm to see execution order and timing metrics.</p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="metric-card">
+          <span>Execution Order</span>
+          <strong id="executionOrder">-</strong>
+        </div>
+        <div class="metric-card">
+          <span>Average Waiting Time</span>
+          <strong id="averageWaiting">-</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Waiting Time</th>
+              <th>Turnaround Time</th>
+            </tr>
+          </thead>
+          <tbody id="resultTableBody">
+            <tr>
+              <td colspan="5" class="empty-state">No schedule generated.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>Gantt Chart</h2>
+        <p>Blocks show charger occupancy and time progression.</p>
+      </div>
+      <div id="ganttChart" class="gantt-chart">
+        <div class="empty-state chart-empty">No chart to display.</div>
+      </div>
+    </section>
+
+    <section class="panel compare-panel">
+      <div class="panel-heading">
+        <h2>Algorithm Comparison</h2>
+        <p>Lower average waiting time is better.</p>
+      </div>
+      <div id="comparisonList" class="comparison-list">
+        <div class="empty-state">Use Suggest Best Algorithm to compare all methods.</div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
